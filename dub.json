@@ -1,0 +1,15 @@
+{
+	"authors": [
+		"Ferhat Kurtulmuş"
+	],
+	"copyright": "Copyright © 2020, Ferhat Kurtulmuş",
+	"dependencies": {
+		"arsd-official:minigui": "~>5.0.0"
+	},
+	"description": "Ultra simple countdown app that runs your custom and scheduled command on your desktop computer.",
+	"license": "boost",
+    "name": "doitlater",
+    "versions": [
+        "custom_widgets"
+    ]
+}
