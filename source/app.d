@@ -4,26 +4,15 @@ import std.stdio;
 import std.datetime.systime;
 import std.process;
 import std.conv: to;
+import std.ascii;
 
 import arsd.minigui;
-
-class DisabledLineEdit : LineEdit {
-    this(Widget parent = null){
-        super(parent);
-    }
-    override void defaultEventHandler_char(Event ev) {
-        // do nothing
-    }
-
-    override int maxHeight() { return Window.lineHeight + 8; }
-	override int minHeight() { return Window.lineHeight + 8; }
-}
 
 class SpinCtrl : HorizontalLayout {
     
     int min, max;
     VerticalLayout butLayout;
-    DisabledLineEdit textNum;
+    LineEdit textNum;
     Button btnUp, btnDown;
     TextLabel label;
 
@@ -41,8 +30,20 @@ class SpinCtrl : HorizontalLayout {
         if(labelText !is null){
             label = new TextLabel(labelText, TextAlignment.Left, this);
         }
-
-        textNum = new DisabledLineEdit(this);
+        auto self = this;
+        textNum = new class LineEdit {
+            this(){
+                super(self);
+                addEventListener("char", delegate(d, ev) {
+                    if(!ev.character.isDigit)
+                        ev.preventDefault();
+                    if(content.length > 1)
+                        textLayout.clear();
+                });
+            }
+            override int maxHeight() { return Window.lineHeight + 8; }
+            override int minHeight() { return Window.lineHeight + 8; }
+        };
 
         butLayout = new VerticalLayout(this);
 
@@ -51,7 +52,7 @@ class SpinCtrl : HorizontalLayout {
                 super("+", butLayout);
             }
             override int maxHeight() { return int(textNum.maxHeight / 2); }
-	        override int minHeight() { return int(textNum.minHeight / 2); }
+            override int minHeight() { return int(textNum.minHeight / 2); }
         };
 
         btnDown = new class Button {
@@ -59,7 +60,7 @@ class SpinCtrl : HorizontalLayout {
                 super("-", butLayout);
             }
             override int maxHeight() { return int(textNum.maxHeight / 2); }
-	        override int minHeight() { return int(textNum.minHeight / 2); }
+            override int minHeight() { return int(textNum.minHeight / 2); }
         };
 
         content = initialVal.to!string;
