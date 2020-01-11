@@ -6,11 +6,12 @@ docs/
 /doitlater
 doitlater.so
 doitlater.dylib
-doitlater.dll
-doitlater.a
-doitlater.lib
+*.dll
+*.a
+*.lib
 doitlater-test-*
 *.exe
 *.o
 *.obj
 *.lst
+*.log

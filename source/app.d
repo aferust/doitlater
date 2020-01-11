@@ -1,202 +1,190 @@
 import core.thread;
 
 import std.stdio;
-import std.datetime.systime;
+import std.ascii;
 import std.process;
 import std.conv: to;
-import std.ascii;
 
-import arsd.minigui;
+import dlangui;
+
+alias _ui = UIString.fromRaw;
+
+mixin APP_ENTRY_POINT;
+
+extern(C) int UIAppMain(string[] args)
+{
+    Platform.instance.uiLanguage = "en";
+    Platform.instance.uiTheme = "theme_dark";
+    auto window = Platform.instance.createWindow("doItLater",null);
+    auto mw = new MainWidget;
+    window.mainWidget = mw;
+    window.show;
+    return Platform.instance.enterMessageLoop();
+}
 
 class SpinCtrl : HorizontalLayout {
-    
-    int min, max;
-    VerticalLayout butLayout;
-    LineEdit textNum;
-    Button btnUp, btnDown;
-    TextLabel label;
 
-    @property string content() { return textNum.content; }
+    TextWidget label;
+    EditLine linEdit;
+    Button butUp, butDown;
+    int min, max;
+
+    @property string content() { return linEdit.text.to!string; }
     @property void content(string value) {
-        textNum.content = value;
-        redraw();
+        linEdit.text = value._ui;
     }
 
-    this(Widget parent, int min, int max, int initialVal = 0, string labelText = null){
-        super(parent);
+    @property int value() { return linEdit.text.to!int; }
+    @property void value(int val) {
+        linEdit.text = val.to!string._ui;
+    }
+
+    this(int min, int max, int initialVal = 0, string labelText = null){
         this.min = min;
         this.max = max;
 
         if(labelText !is null){
-            label = new TextLabel(labelText, TextAlignment.Left, this);
+            label = new TextWidget("label", _ui(labelText));
+            addChild(label);
         }
-        auto self = this;
-        textNum = new class LineEdit {
-            this(){
-                super(self);
-                addEventListener("char", delegate(d, ev) {
-                    if(!ev.character.isDigit)
-                        ev.preventDefault();
-                    if(content.length > 1)
-                        textLayout.clear();
-                });
+
+        linEdit = new class EditLine {
+            this(){super("linEdit", "0"d);}
+            override bool onKeyEvent(KeyEvent event) {
+                if (( KeyAction.Text == event.action && event.text[0].isDigit)
+                    || event.keyCode == KeyCode.BACK
+                    || event.keyCode == KeyCode.DEL
+                    || event.keyCode == KeyCode.LEFT
+                    || event.keyCode == KeyCode.RIGHT
+                    ){
+                        return super.onKeyEvent(event);
+                }
+                return false;
             }
-            override int maxHeight() { return Window.lineHeight + 8; }
-            override int minHeight() { return Window.lineHeight + 8; }
         };
 
-        butLayout = new VerticalLayout(this);
+        linEdit.minHeight = 35;
+        if(initialVal != 0)
+            linEdit.text = initialVal.to!string._ui;
+        addChild(linEdit);
 
-        btnUp = new class Button {
-            this(){
-                super("+", butLayout);
-            }
-            override int maxHeight() { return int(textNum.maxHeight / 2); }
-            override int minHeight() { return int(textNum.minHeight / 2); }
-        };
 
-        btnDown = new class Button {
-            this(){
-                super("-", butLayout);
-            }
-            override int maxHeight() { return int(textNum.maxHeight / 2); }
-            override int minHeight() { return int(textNum.minHeight / 2); }
-        };
+        auto butContainer = new VerticalLayout();
+        butContainer.maxHeight = linEdit.minHeight;
 
-        content = initialVal.to!string;
+        butUp = new Button("butUp", "+"d);
+        butUp.margins(Rect(1.pointsToPixels, 1.pointsToPixels, 1.pointsToPixels, 1.pointsToPixels));
 
-        btnUp.addEventListener(EventType.triggered, () {
-            immutable val = content.to!int;
+        butDown = new Button("butDown", "-"d);
+        butDown.margins(Rect(1.pointsToPixels, 1.pointsToPixels, 1.pointsToPixels, 1.pointsToPixels));
+
+        butContainer.addChild(butUp);
+        butContainer.addChild(butDown);
+
+        addChild(butContainer);
+
+        butUp.click = delegate(Widget w) {
+			immutable val = linEdit.text.to!int;
             if((val + 1) <= max )
-                content = (val + 1).to!string;
-        });
-
-        btnDown.addEventListener(EventType.triggered, () {
-            immutable val = content.to!int;
+                linEdit.text = (val + 1).to!string._ui;
+			return true;
+		};
+        butDown.click = delegate(Widget w) {
+			immutable val = linEdit.text.to!int;
             if((val - 1) >= min )
-                content = (val - 1).to!string;
-        });
+                linEdit.text = (val - 1).to!string._ui;
+			return true;
+		};
     }
+    
 }
 
-class MyWindow : MainWindow {
-    this() {
-        super("Do it later", 350, 250);
-        
-        super.statusTip = "Idle";
+class MainWidget : VerticalLayout {
+  
+public:
+    SpinCtrl daytext, hourtext, minutetext, secondtext;
+    EditBox cmdEdit;
+    ulong timerId;
+    Button btnStart, btnStop;
 
-        auto vl = new VerticalLayout(this);
+    this(){
+        auto hlTime = new HorizontalLayout();
+        daytext = new SpinCtrl(0, 365, 0, "Day:");
+        hourtext = new SpinCtrl(0, 23, 1, "Hour:"); 
+        minutetext = new SpinCtrl(0, 59, 0, "Min:"); 
+        secondtext = new SpinCtrl(0, 59, 0, "Sec:");
+        hlTime.addChildren([daytext, hourtext, minutetext, secondtext]);
 
-        auto hlTime = new HorizontalLayout(vl);
-        daytext = new SpinCtrl(hlTime, 0, 365, 0, "Day:");
-        hourtext = new SpinCtrl(hlTime, 0, 23, 1, "Hour:"); 
-        minutetext = new SpinCtrl(hlTime, 0, 59, 0, "Min:"); 
-        secondtext = new SpinCtrl(hlTime, 0, 59, 0, "Sec:");
-        
-        auto label = new TextLabel("Command:", TextAlignment.Left, vl);
-        cmdEdit = new TextEdit(vl);
-        
+        addChild(hlTime);
+
+        auto label = new TextWidget("labelcmd", "Command:"d);
+        addChild(label);
+
+        cmdEdit = new EditBox("cmdEdit", ""d);
+        cmdEdit.minHeight = 150;
+
         version(Windows) {
-            cmdEdit.content = "shutdown /s";
+            cmdEdit.text = "shutdown /s"d;
         }
         
         version(linux) {
-            cmdEdit.content = "shutdown -h now";
+            cmdEdit.text = "shutdown -h now"d;
         }
-        
-        auto hlBtns = new HorizontalLayout(vl);
-        auto btnStart = new Button("Start", hlBtns);
-        auto btnStop = new Button("Stop/Pause", hlBtns);
-        
-        btnStart.addEventListener(EventType.triggered, () {
-            super.statusTip = "Countdown is running...";
-            btnStart.label("Running...");
-            if(mthread !is null){
-                if(!mthread.isRunning)
-                    mthread = new MyTimer(this).start();
-            }else
-                mthread = new MyTimer(this).start();
-        });
+        addChild(cmdEdit);
 
-        btnStop.addEventListener(EventType.triggered, () {
-            btnStart.label("Start");
-            if(mthread !is null)
-                (cast(MyTimer)mthread).stop();
-            super.statusTip = "Stoped / Paused";
-        });
-        
-        super.win.onClosing = &onClose;
-    }
+        auto hlBtns = new HorizontalLayout();
+        btnStart = new Button("btnStart", "Start"d);
+        btnStop = new Button("btnStop", "Stop/Pause"d);
+        hlBtns.addChildren([btnStart, btnStop]);
 
-    void onClose(){
-        if(mthread !is null)
-            (cast(MyTimer)mthread).stop();
-    }
-    
-    Thread mthread;
-    SpinCtrl daytext, hourtext, minutetext, secondtext;
-    TextEdit cmdEdit;
-}
+        addChild(hlBtns);
 
-class MyTimer : Thread {
-    MyWindow ctx;
-    this(MyWindow ctx){
-        isWorking = false;
-        this.ctx = ctx;
-        this.mustStop = false;
-        super(&run);
-    }
+        btnStart.click = delegate(Widget w) {
+            btnStart.enabled =  false;
+            btnStop.enabled = true;
+            btnStart.text = "Running..."d;
+            timerId = setTimer(1000);
+			return true;
+		};
 
-    bool isWorking;
-    private bool mustStop;
-    
-    public:
-    void run(){
-        if(isWorking == false){
-            isWorking = true;
-            while(!mustStop){
-                Thread.sleep(1.seconds);
-                if (isCompleted()){
-                    auto ls = executeShell(ctx.cmdEdit.content);
-                }
-            }
-            isWorking = false;            
-        }
-    }
-
-    bool isCompleted(){
-        int day = ctx.daytext.content.to!int;
-        int hour = ctx.hourtext.content.to!int;
-        int minute = ctx.minutetext.content.to!int;
-        int second = ctx.secondtext.content.to!int;
-
-        ctx.secondtext.content = (--second).to!string;
-        if((day == 0) && (hour == 0) && (minute == 0) && (second == 0)){
+        btnStop.click = delegate(Widget w) {
             stop();
-            return true;
+			return true;
+		};
+    }
+
+    void stop(){
+        btnStart.text = "Start"d;
+        btnStart.enabled = true;
+        btnStop.enabled = false;
+        cancelTimer(timerId);
+    }
+
+    override bool onTimer(ulong id) {
+        int day = daytext.content.to!int;
+        int hour = hourtext.content.to!int;
+        int minute = minutetext.content.to!int;
+        int second = secondtext.content.to!int;
+        
+        if((day == 0) && (hour == 0) && (minute == 0) && (second == 0)){
+            auto ls = executeShell(cmdEdit.text.to!string);
+            stop();
+            return false;
         } else {
+            secondtext.content = (--second).to!string;
             if(second == -1){
-                ctx.secondtext.content = "59";
-                ctx.minutetext.content = (--minute).to!string;
+                secondtext.content = "59";
+                minutetext.content = (--minute).to!string;
                 if(minute == -1){
-                    ctx.minutetext.content = "59";
-                    ctx.hourtext.content = (--hour).to!string;
+                    minutetext.content = "59";
+                    hourtext.content = (--hour).to!string;
                     if(hour == -1){
-                        ctx.hourtext.content = "23";
-                        ctx.daytext.content = (--day).to!string;
+                        hourtext.content = "23";
+                        daytext.content = (--day).to!string;
                     }
                 }
             }
         }
-        return false;
+        return true;
     }
-
-    void stop(){
-        mustStop = true;
-    }
-}
-
-void main() {
-    auto window = new MyWindow();
-    window.loop();
 }
