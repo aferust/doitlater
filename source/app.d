@@ -29,14 +29,9 @@ class SpinCtrl : HorizontalLayout {
     Button butUp, butDown;
     int min, max;
 
-    @property string content() { return linEdit.text.to!string; }
-    @property void content(string value) {
-        linEdit.text = value._ui;
-    }
-
     @property int value() { return linEdit.text.to!int; }
     @property void value(int val) {
-        linEdit.text = val.to!string._ui;
+        linEdit.text = val.to!dstring;
     }
 
     this(int min, int max, int initialVal = 0, string labelText = null){
@@ -61,11 +56,19 @@ class SpinCtrl : HorizontalLayout {
                 }
                 return false;
             }
+
+            override bool onMouseEvent(MouseEvent event) {
+                if((event.wheelDelta == 1) && (value < max))
+                    value = value + event.wheelDelta;
+                if((event.wheelDelta == -1) && (value > min))
+                    value = value + event.wheelDelta;
+                return true;
+            }
         };
 
         linEdit.minHeight = 35;
         if(initialVal != 0)
-            linEdit.text = initialVal.to!string._ui;
+            value = initialVal;
         addChild(linEdit);
 
 
@@ -85,13 +88,13 @@ class SpinCtrl : HorizontalLayout {
 
         butUp.click = delegate(Widget w) {
 			immutable val = linEdit.text.to!int;
-            if((val + 1) <= max )
+            if(val < max )
                 linEdit.text = (val + 1).to!string._ui;
 			return true;
 		};
         butDown.click = delegate(Widget w) {
 			immutable val = linEdit.text.to!int;
-            if((val - 1) >= min )
+            if(val > min )
                 linEdit.text = (val - 1).to!string._ui;
 			return true;
 		};
@@ -161,26 +164,26 @@ public:
     }
 
     override bool onTimer(ulong id) {
-        int day = daytext.content.to!int;
-        int hour = hourtext.content.to!int;
-        int minute = minutetext.content.to!int;
-        int second = secondtext.content.to!int;
+        int day = daytext.value;
+        int hour = hourtext.value;
+        int minute = minutetext.value;
+        int second = secondtext.value;
         
         if((day == 0) && (hour == 0) && (minute == 0) && (second == 0)){
             auto ls = executeShell(cmdEdit.text.to!string);
             stop();
             return false;
         } else {
-            secondtext.content = (--second).to!string;
+            secondtext.value = --second;
             if(second == -1){
-                secondtext.content = "59";
-                minutetext.content = (--minute).to!string;
+                secondtext.value = 59;
+                minutetext.value = --minute;
                 if(minute == -1){
-                    minutetext.content = "59";
-                    hourtext.content = (--hour).to!string;
+                    minutetext.value = 59;
+                    hourtext.value = --hour;
                     if(hour == -1){
-                        hourtext.content = "23";
-                        daytext.content = (--day).to!string;
+                        hourtext.value = 23;
+                        daytext.value = --day;
                     }
                 }
             }
