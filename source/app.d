@@ -1,5 +1,3 @@
-import core.thread;
-
 import std.stdio;
 import std.ascii;
 import std.process;
@@ -25,9 +23,11 @@ extern(C) int UIAppMain(string[] args)
 class SpinCtrl : HorizontalLayout {
 
     TextWidget label;
-    EditLine linEdit;
-    Button butUp, butDown;
     int min, max;
+    
+    private EditLine linEdit;
+    private Button butUp, butDown;
+    
 
     @property int value() { return linEdit.text.to!int; }
     @property void value(int val) {
