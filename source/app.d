@@ -51,6 +51,7 @@ class SpinCtrl : HorizontalLayout {
                     || event.keyCode == KeyCode.DEL
                     || event.keyCode == KeyCode.LEFT
                     || event.keyCode == KeyCode.RIGHT
+                    || event.keyCode == KeyCode.TAB
                     ){
                         return super.onKeyEvent(event);
                 }
@@ -58,13 +59,26 @@ class SpinCtrl : HorizontalLayout {
             }
 
             override bool onMouseEvent(MouseEvent event) {
-                if((event.wheelDelta == 1) && (value < max))
-                    value = value + event.wheelDelta;
-                if((event.wheelDelta == -1) && (value > min))
-                    value = value + event.wheelDelta;
-                return true;
+                if(event.action == MouseAction.Wheel){
+                    if((event.wheelDelta == 1) && (value < max))
+                        value = value + event.wheelDelta;
+                    if((event.wheelDelta == -1) && (value > min))
+                        value = value + event.wheelDelta;
+                    return true;
+                }
+                return super.onMouseEvent(event);
             }
         };
+
+        linEdit.addOnFocusChangeListener((w, t){
+            if(linEdit.text == "")
+                linEdit.text = "0";
+            if(linEdit.text.to!int > max)
+                value = max;
+            if(linEdit.text.to!int < min)
+                value = min;
+            return true;
+        });
 
         linEdit.minHeight = 35;
         if(initialVal != 0)
