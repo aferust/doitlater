@@ -5,8 +5,6 @@ import std.conv: to;
 
 import dlangui;
 
-alias _ui = UIString.fromRaw;
-
 mixin APP_ENTRY_POINT;
 
 extern(C) int UIAppMain(string[] args)
@@ -43,12 +41,12 @@ class SpinCtrl : HorizontalLayout {
         butDown.enabled = status;
     }
 
-    this(int min, int max, int initialVal = 0, string labelText = null){
+    this(int min, int max, int initialVal = 0, dstring labelText = null){
         this.min = min;
         this.max = max;
 
         if(labelText !is null){
-            label = new TextWidget("label", _ui(labelText));
+            label = new TextWidget("label", labelText);
             addChild(label);
         }
 
@@ -112,13 +110,13 @@ class SpinCtrl : HorizontalLayout {
         butUp.click = delegate(Widget w) {
 			immutable val = linEdit.text.to!int;
             if(val < max )
-                linEdit.text = (val + 1).to!string._ui;
+                linEdit.text = (val + 1).to!dstring;
 			return true;
 		};
         butDown.click = delegate(Widget w) {
 			immutable val = linEdit.text.to!int;
             if(val > min )
-                linEdit.text = (val - 1).to!string._ui;
+                linEdit.text = (val - 1).to!dstring;
 			return true;
 		};
 
@@ -137,10 +135,10 @@ public:
 
     this(){
         auto hlTime = new HorizontalLayout();
-        daytext = new SpinCtrl(0, 365, 0, "Day:");
-        hourtext = new SpinCtrl(0, 23, 1, "Hour:"); 
-        minutetext = new SpinCtrl(0, 59, 0, "Min:"); 
-        secondtext = new SpinCtrl(0, 59, 0, "Sec:");
+        daytext = new SpinCtrl(0, 365, 0, "Day:"d);
+        hourtext = new SpinCtrl(0, 23, 1, "Hour:"d); 
+        minutetext = new SpinCtrl(0, 59, 0, "Min:"d); 
+        secondtext = new SpinCtrl(0, 59, 0, "Sec:"d);
         hlTime.addChildren([daytext, hourtext, minutetext, secondtext]);
 
         addChild(hlTime);
