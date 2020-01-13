@@ -12,7 +12,8 @@ mixin APP_ENTRY_POINT;
 extern(C) int UIAppMain(string[] args)
 {
     Platform.instance.uiLanguage = "en";
-    Platform.instance.uiTheme = "theme_dark";
+    embeddedResourceList.addResources(embedResourcesFromList!("resources.list")());
+    Platform.instance.uiTheme = "theme_custom";
     auto window = Platform.instance.createWindow("doItLater",null);
     auto mw = new MainWidget;
     window.mainWidget = mw;
@@ -32,6 +33,14 @@ class SpinCtrl : HorizontalLayout {
     @property int value() { return linEdit.text.to!int; }
     @property void value(int val) {
         linEdit.text = val.to!dstring;
+    }
+
+    override @property bool enabled() { return linEdit.enabled; }
+    alias enabled = Widget.enabled;
+    @property void enabled(bool status) {
+        linEdit.enabled = status;
+        butUp.enabled = status;
+        butDown.enabled = status;
     }
 
     this(int min, int max, int initialVal = 0, string labelText = null){
@@ -59,7 +68,7 @@ class SpinCtrl : HorizontalLayout {
             }
 
             override bool onMouseEvent(MouseEvent event) {
-                if(event.action == MouseAction.Wheel){
+                if(enabled && event.action == MouseAction.Wheel){
                     if((event.wheelDelta == 1) && (value < max))
                         value = value + event.wheelDelta;
                     if((event.wheelDelta == -1) && (value > min))
@@ -112,6 +121,8 @@ class SpinCtrl : HorizontalLayout {
                 linEdit.text = (val - 1).to!string._ui;
 			return true;
 		};
+
+        enabled = true;
     }
     
 }
